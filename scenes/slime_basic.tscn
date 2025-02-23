@@ -1,0 +1,130 @@
+[gd_scene load_steps=12 format=3 uid="uid://ywsci7g0n8ge"]
+
+[ext_resource type="Script" path="res://scripts/human_unit.gd" id="1_6gkyi"]
+[ext_resource type="Texture2D" uid="uid://cbe3t8gn8pepr" path="res://assets/sprites/slimes/slime_basic.png" id="2_te6tl"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_0x4f7"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_eslkp"]
+atlas = ExtResource("2_te6tl")
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_vbrl1"]
+radius = 8.0
+height = 16.0
+
+[sub_resource type="Animation" id="Animation_mf1pb"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [36]
+}
+
+[sub_resource type="Animation" id="Animation_q5tsd"]
+resource_name = "attack_left"
+length = 0.6
+step = 0.1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4, 0.5),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [6, 7, 8, 9, 10, 11]
+}
+
+[sub_resource type="Animation" id="Animation_fqjta"]
+resource_name = "attack_right"
+length = 0.6
+step = 0.1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4, 0.5),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [12, 13, 14, 15, 16, 17]
+}
+
+[sub_resource type="Animation" id="Animation_siqwa"]
+resource_name = "idle_left"
+length = 0.4
+loop_mode = 1
+step = 0.1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.2, 0.3),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 1,
+"values": [30, 31, 32, 33]
+}
+
+[sub_resource type="Animation" id="Animation_7od7t"]
+resource_name = "idle_right"
+length = 0.4
+loop_mode = 1
+step = 0.1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.2, 0.3),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 1,
+"values": [36, 37, 38, 39]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_taaoe"]
+_data = {
+"RESET": SubResource("Animation_mf1pb"),
+"attack_left": SubResource("Animation_q5tsd"),
+"attack_right": SubResource("Animation_fqjta"),
+"idle_left": SubResource("Animation_siqwa"),
+"idle_right": SubResource("Animation_7od7t")
+}
+
+[node name="SlimeBasic" type="Area2D"]
+script = ExtResource("1_6gkyi")
+drops_goo = true
+can_attack = false
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+material = SubResource("ShaderMaterial_0x4f7")
+position = Vector2(0, -11)
+texture = SubResource("AtlasTexture_eslkp")
+hframes = 6
+vframes = 12
+frame = 36
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CapsuleShape2D_vbrl1")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+libraries = {
+"": SubResource("AnimationLibrary_taaoe")
+}
+autoplay = "idle_right"
+speed_scale = 0.8

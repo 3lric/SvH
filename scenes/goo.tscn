@@ -1,0 +1,53 @@
+[gd_scene load_steps=8 format=3 uid="uid://cl8h52rj3gvii"]
+
+[ext_resource type="Script" path="res://scripts/goo.gd" id="1_khkul"]
+[ext_resource type="Texture2D" uid="uid://ccm1njsau5uh6" path="res://assets/sprites/slimes/goo.png" id="2_8fy3t"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ecqxy"]
+atlas = ExtResource("2_8fy3t")
+region = Rect2(256, 256, 128, 128)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_3ecyj"]
+atlas = ExtResource("2_8fy3t")
+region = Rect2(384, 256, 128, 128)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_cc6mj"]
+atlas = ExtResource("2_8fy3t")
+region = Rect2(512, 256, 128, 128)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_ndw65"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ecqxy")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_3ecyj")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_cc6mj")
+}],
+"loop": true,
+"name": &"default",
+"speed": 7.0
+}]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_psgee"]
+radius = 14.0
+
+[node name="Goo" type="Area2D"]
+scale = Vector2(0.5, 0.5)
+script = ExtResource("1_khkul")
+resource_value = 50
+float_range = 50.0
+float_speed = 2.0
+lifespan = 25.0
+
+[node name="Sprite2D" type="AnimatedSprite2D" parent="."]
+sprite_frames = SubResource("SpriteFrames_ndw65")
+autoplay = "default"
+frame_progress = 0.216768
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, 12)
+shape = SubResource("CircleShape2D_psgee")

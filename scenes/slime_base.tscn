@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=3 uid="uid://biqatexk1wv8o"]
+
+[ext_resource type="Script" path="res://scripts/human_unit.gd" id="1_fxr4n"]
+
+[node name="HumanUnit" type="Area2D"]
+script = ExtResource("1_fxr4n")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]

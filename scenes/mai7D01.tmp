@@ -1,0 +1,13 @@
+[gd_scene load_steps=4 format=3 uid="uid://cxcl36sw0326u"]
+
+[ext_resource type="Script" path="res://scripts/main.gd" id="1_30wc7"]
+[ext_resource type="PackedScene" uid="uid://v26v8evwpixq" path="res://scenes/board.tscn" id="2_6ncka"]
+[ext_resource type="PackedScene" uid="uid://bs155p8h0vsld" path="res://scenes/hud.tscn" id="3_5s537"]
+
+[node name="Main" type="Node2D"]
+script = ExtResource("1_30wc7")
+
+[node name="Board" parent="." instance=ExtResource("2_6ncka")]
+cell_size = Vector2(32, 32)
+
+[node name="HUD" parent="." instance=ExtResource("3_5s537")]

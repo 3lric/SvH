@@ -1,0 +1,88 @@
+[gd_scene load_steps=8 format=3 uid="uid://bc48x7gb4j8vu"]
+
+[ext_resource type="Script" path="res://scripts/monster.gd" id="1_ujgi7"]
+[ext_resource type="Texture2D" uid="uid://bitt3sod6ngkl" path="res://assets/sprites/monster/beholder_2.png" id="2_j8m18"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_03trb"]
+radius = 22.5
+
+[sub_resource type="Animation" id="Animation_fpg0n"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame_coords")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [Vector2i(0, 23)]
+}
+
+[sub_resource type="Animation" id="Animation_a2hg0"]
+resource_name = "attack_left"
+length = 1.2
+loop_mode = 1
+step = 0.1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame_coords")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [Vector2i(0, 2), Vector2i(1, 2), Vector2i(2, 2), Vector2i(3, 2), Vector2i(4, 2), Vector2i(5, 2), Vector2i(6, 2), Vector2i(7, 2), Vector2i(8, 2), Vector2i(9, 2), Vector2i(10, 2), Vector2i(11, 2)]
+}
+
+[sub_resource type="Animation" id="Animation_n26d5"]
+resource_name = "walk_left"
+length = 0.8
+loop_mode = 1
+step = 0.1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame_coords")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [Vector2i(0, 22), Vector2i(1, 22), Vector2i(2, 22), Vector2i(3, 22), Vector2i(4, 22), Vector2i(5, 22), Vector2i(6, 22), Vector2i(7, 22)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_0hr3p"]
+_data = {
+"RESET": SubResource("Animation_fpg0n"),
+"attack_left": SubResource("Animation_a2hg0"),
+"walk_left": SubResource("Animation_n26d5")
+}
+
+[node name="StoneGolem" type="Area2D" groups=["Monsters"]]
+script = ExtResource("1_ujgi7")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+position = Vector2(0, -2.27374e-13)
+texture = ExtResource("2_j8m18")
+hframes = 12
+vframes = 24
+frame = 276
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." groups=["Monsters"]]
+position = Vector2(2.38419e-07, 2.5)
+shape = SubResource("CircleShape2D_03trb")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+libraries = {
+"": SubResource("AnimationLibrary_0hr3p")
+}
+speed_scale = 0.8
+
+[connection signal="area_entered" from="." to="." method="_on_Monster_area_entered"]
+[connection signal="body_entered" from="." to="." method="_on_Projectile_body_entered"]

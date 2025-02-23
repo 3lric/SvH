@@ -1,0 +1,83 @@
+[gd_scene load_steps=12 format=3 uid="uid://bqvsv0bqjhst6"]
+
+[ext_resource type="Script" path="res://scripts/human_unit.gd" id="1_ag0ir"]
+[ext_resource type="Texture2D" uid="uid://c8l10c2fyydin" path="res://assets/sprites/slimes/slime_normal.png" id="2_toyb6"]
+[ext_resource type="Texture2D" uid="uid://c0w1vrg0iw3md" path="res://assets/sprites/shaders/pixel.png" id="3_fkmnh"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_mpm4a"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_eslkp"]
+atlas = ExtResource("2_toyb6")
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_vbrl1"]
+height = 20.0
+
+[sub_resource type="Animation" id="Animation_mf1pb"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame_coords")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [Vector2i(0, 15)]
+}
+
+[sub_resource type="Animation" id="Animation_7od7t"]
+resource_name = "idle_right"
+length = 0.6
+loop_mode = 1
+step = 0.1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame_coords")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4, 0.5),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [Vector2i(0, 15), Vector2i(1, 15), Vector2i(2, 15), Vector2i(3, 15), Vector2i(4, 15), Vector2i(5, 15)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_taaoe"]
+_data = {
+"RESET": SubResource("Animation_mf1pb"),
+"idle_right": SubResource("Animation_7od7t")
+}
+
+[sub_resource type="Shader" id="Shader_scrub"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_7xc2y"]
+render_priority = 0
+shader = SubResource("Shader_scrub")
+
+[node name="SlimeNormal" type="Area2D"]
+script = ExtResource("1_ag0ir")
+cost = 150
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+material = SubResource("ShaderMaterial_mpm4a")
+texture = SubResource("AtlasTexture_eslkp")
+hframes = 10
+vframes = 24
+frame = 150
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CapsuleShape2D_vbrl1")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+libraries = {
+"": SubResource("AnimationLibrary_taaoe")
+}
+autoplay = "idle_right"
+
+[node name="GPUParticles2D" type="GPUParticles2D" parent="."]
+amount = 1000
+process_material = SubResource("ShaderMaterial_7xc2y")
+texture = ExtResource("3_fkmnh")

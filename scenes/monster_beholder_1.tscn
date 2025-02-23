@@ -1,0 +1,552 @@
+[gd_scene load_steps=14 format=3 uid="uid://chym630m1belo"]
+
+[ext_resource type="Script" path="res://scripts/monster.gd" id="1_7bytk"]
+[ext_resource type="Texture2D" uid="uid://bbg7ltoo6u6ka" path="res://assets/sprites/monster/beholder_1.png" id="2_62uqw"]
+[ext_resource type="Texture2D" uid="uid://do70l8v8wd6um" path="res://assets/sprites/shaders/single_frame_beholder_1.png" id="3_lnq6c"]
+[ext_resource type="Texture2D" uid="uid://c0w1vrg0iw3md" path="res://assets/sprites/shaders/pixel.png" id="4_i2yyo"]
+[ext_resource type="Script" path="res://scripts/sprite_explode.gd" id="5_egdyd"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_03trb"]
+radius = 22.5
+
+[sub_resource type="Animation" id="Animation_fpg0n"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame_coords")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [Vector2i(0, 23)]
+}
+
+[sub_resource type="Animation" id="Animation_a2hg0"]
+resource_name = "attack_left"
+length = 1.2
+loop_mode = 1
+step = 0.1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame_coords")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [Vector2i(0, 2), Vector2i(1, 2), Vector2i(2, 2), Vector2i(3, 2), Vector2i(4, 2), Vector2i(5, 2), Vector2i(6, 2), Vector2i(7, 2), Vector2i(8, 2), Vector2i(9, 2), Vector2i(10, 2), Vector2i(11, 2)]
+}
+
+[sub_resource type="Animation" id="Animation_gl52v"]
+resource_name = "death_left"
+length = 0.9
+step = 0.1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame_coords")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [Vector2i(0, 6), Vector2i(1, 6), Vector2i(2, 6), Vector2i(3, 6), Vector2i(4, 6), Vector2i(5, 6), Vector2i(6, 6), Vector2i(7, 6), Vector2i(8, 6)]
+}
+
+[sub_resource type="Animation" id="Animation_n26d5"]
+resource_name = "walk_left"
+length = 0.8
+loop_mode = 1
+step = 0.1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame_coords")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [Vector2i(0, 22), Vector2i(1, 22), Vector2i(2, 22), Vector2i(3, 22), Vector2i(4, 22), Vector2i(5, 22), Vector2i(6, 22), Vector2i(7, 22)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_0hr3p"]
+_data = {
+"RESET": SubResource("Animation_fpg0n"),
+"attack_left": SubResource("Animation_a2hg0"),
+"death_left": SubResource("Animation_gl52v"),
+"walk_left": SubResource("Animation_n26d5")
+}
+
+[sub_resource type="Shader" id="Shader_1o43y"]
+code = "shader_type particles;
+render_mode disable_velocity;
+
+/*
+   This shader spawns particles in a bounding box (scaled by spawn_area_scale),
+   then moves them using swirl/orbit, radial_accel, etc., 
+   and applies a per-pixel alpha from 'sprite.'
+
+   We removed the bounding-box velocity blending so you don’t
+   see that large outer ring. The initial velocity is purely 
+   based on direction/spread/flatness + random linear velocity.
+
+   All uniforms remain, so editing them in the Inspector still 
+   has some effect on the final behavior.
+*/
+
+// --- UNIFORMS ---
+uniform sampler2D sprite;                       
+uniform vec3 emission_box_extents = vec3(21.0, 27.0, 0.0);
+uniform float lifetime_randomness = 0.0;
+uniform float initial_linear_velocity_min = 3.0;
+uniform float initial_linear_velocity_max = 3.0;
+uniform vec4 color_value : source_color = vec4(1.0, 1.0, 1.0, 1.0);
+uniform vec3 gravity = vec3(0.0, -0.000001, 0.0);
+
+// Scales bounding box area for particle spawning
+uniform float spawn_area_scale = 1.0;
+
+// Scales each particle quad
+uniform float scale_factor = 1.0;
+
+// Additional scale uniform (used with random scale as well)
+uniform float scale = 1.0;
+
+// Hue shift in degrees. We'll do a random shift in start() so each particle can differ.
+uniform float hue_variation = 0.0;
+
+// Animation speed and offset for a trivial scrolling UV approach
+uniform float anim_speed = 0.0;
+uniform float anim_offset = 0.0;
+
+// Basic direction for initial velocity, plus spread & flatness
+uniform vec3 direction = vec3(1.0, 0.0, 0.0);
+uniform float spread = 0.0;
+uniform float flatness = 0.0;
+
+// The swirl/damping logic
+uniform float initial_linear_velocity = 3.0;
+uniform float initial_angle = 0.0;
+uniform float angular_velocity = 0.0;
+uniform float orbit_velocity = 0.0;
+uniform float linear_accel = 0.0;
+uniform float radial_accel = 0.0;
+uniform float tangent_accel = 0.0;
+uniform float damping = 0.0;
+
+// Variation uniforms
+uniform float hue_variation_random = 0.0;
+uniform float initial_linear_velocity_random = 0.0;
+uniform float initial_angle_random = 0.0;
+uniform float angular_velocity_random = 0.0;
+uniform float orbit_velocity_random = 0.0;
+uniform float linear_accel_random = 0.0;
+uniform float radial_accel_random = 0.0;
+uniform float tangent_accel_random = 0.0;
+uniform float damping_random = 0.0;
+uniform float scale_random = 0.0;
+uniform float anim_speed_random = 0.0;
+uniform float anim_offset_random = 0.0;
+uniform int   trail_divisor = 1;
+
+// Center offset for swirl around the sprite’s pivot
+uniform vec2 sprite_center_offset = vec2(0.0, 0.0);
+
+// --- HELPER RANDOM FUNCTIONS ---
+void hash_func(inout uint x, out uint ret) {
+	x = ((x >> uint(16)) ^ x) * uint(73244475);
+	x = ((x >> uint(16)) ^ x) * uint(73244475);
+	x = (x >> uint(16)) ^ x;
+	ret = x;
+}
+
+void rand_from_seed(inout uint seed, out float result) {
+	if (seed == 0u) {
+		seed = 305420679u;
+	}
+	int k = int(seed) / 127773;
+	int s = int(seed) - k * 127773;
+	s = 16807 * s - 2836 * k;
+	if (s < 0) {
+		s += 2147483647;
+	}
+	seed = uint(s);
+	result = float(seed % uint(65536)) / 65535.0;
+}
+
+void rand_from_seed_m1_p1(inout uint seed, out float result) {
+	float tmp;
+	rand_from_seed(seed, tmp);
+	result = tmp * 2.0 - 1.0;
+}
+
+// Convert RGB <-> HSV for hue shifting
+vec3 rgb2hsv(vec3 c) {
+	float M = max(c.r, max(c.g, c.b));
+	float m = min(c.r, min(c.g, c.b));
+	float d = M - m;
+	float h = 0.0;
+	if (d > 0.00001) {
+		if (M == c.r) { h = (c.g - c.b) / d; if (h < 0.0) h += 6.0; }
+		else if (M == c.g) { h = (c.b - c.r) / d + 2.0; }
+		else { h = (c.r - c.g) / d + 4.0; }
+		h /= 6.0;
+	}
+	float s = (M <= 0.00001) ? 0.0 : d / M;
+	float v = M;
+	return vec3(h, s, v);
+}
+
+vec3 hsv2rgb(vec3 c) {
+	float h = c.x * 6.0;
+	float s = c.y;
+	float v = c.z;
+	float i = floor(h);
+	float f = h - i;
+	float p = v * (1.0 - s);
+	float q = v * (1.0 - f * s);
+	float t = v * (1.0 - (1.0 - f) * s);
+	if (i < 0.0) i = 0.0;
+	vec3 res;
+	if (i == 0.0) { res = vec3(v, t, p); }
+	else if (i == 1.0) { res = vec3(q, v, p); }
+	else if (i == 2.0) { res = vec3(p, v, t); }
+	else if (i == 3.0) { res = vec3(p, q, v); }
+	else if (i == 4.0) { res = vec3(t, p, v); }
+	else { res = vec3(v, p, q); }
+	return res;
+}
+
+vec4 shift_hue(vec4 color_in, float hue_shift_degs) {
+	float hue_shift = hue_shift_degs / 360.0;
+	vec3 hsv = rgb2hsv(color_in.rgb);
+	hsv.x = fract(hsv.x + hue_shift);
+	vec3 new_rgb = hsv2rgb(hsv);
+	return vec4(new_rgb, color_in.a);
+}
+
+// --- START (runs once per spawn) ---
+void start() {
+	CUSTOM = vec4(0.0);
+
+	// Seed
+	uint base_number = NUMBER;
+	uint tmp_seed = base_number + uint(1) + RANDOM_SEED;
+	uint alt_seed = 0u;
+	hash_func(tmp_seed, alt_seed);
+
+	//------------------------------------------------
+	// 1) Random lifetime factor
+	//------------------------------------------------
+	float rand_lt = 0.0;
+	rand_from_seed(alt_seed, rand_lt);
+	float lifetime_factor = 1.0 - (lifetime_randomness * rand_lt);
+	CUSTOM.w = lifetime_factor;
+
+	//------------------------------------------------
+	// 2) Random spawn in bounding box
+	//------------------------------------------------
+	float rp0 = 0.0; rand_from_seed(alt_seed, rp0);
+	float rp1 = 0.0; rand_from_seed(alt_seed, rp1);
+	vec3 random_pos = vec3(rp0 * 2.0 - 1.0, rp1 * 2.0 - 1.0, 0.0) * emission_box_extents;
+
+	// Expand bounding region
+	random_pos *= spawn_area_scale;
+
+	TRANSFORM[3].xyz = random_pos;
+	TRANSFORM = EMISSION_TRANSFORM * TRANSFORM;
+
+	//------------------------------------------------
+	// 3) Sample sprite color
+	//------------------------------------------------
+	vec2 tex_size = vec2(textureSize(sprite, 0));
+	if (tex_size.x < 1.0) tex_size.x = 1.0;
+	if (tex_size.y < 1.0) tex_size.y = 1.0;
+	vec2 uv = TRANSFORM[3].xy / tex_size + vec2(0.5, 0.5);
+	vec4 sprite_color = texture(sprite, uv);
+	if (sprite_color.a <= 0.0) {
+		ACTIVE = false;
+	} else {
+		COLOR = sprite_color * color_value;
+
+		//------------------------------------------------
+		// 4) Hue Variation
+		//------------------------------------------------
+		float hue_rand = 0.0;
+		rand_from_seed_m1_p1(alt_seed, hue_rand);
+		float final_hue_shift = hue_variation + hue_variation_random * hue_rand;
+		COLOR = shift_hue(COLOR, final_hue_shift);
+
+		//------------------------------------------------
+		// 5) direction + spread + flatness
+		//------------------------------------------------
+		vec2 dir2D = normalize(direction.xy);
+		if (length(dir2D) < 0.00001) {
+			dir2D = vec2(1.0, 0.0);
+		}
+		float spread_rand = 0.0;
+		rand_from_seed_m1_p1(alt_seed, spread_rand);
+		float angle_spread = spread_rand * spread * 3.14159;
+		float base_angle = atan(dir2D.y, dir2D.x);
+		float final_angle = base_angle + angle_spread;
+		float cdir = cos(final_angle);
+		float sdir = sin(final_angle);
+		vec2 final_dir2D = vec2(cdir, sdir);
+		// Flatten the y if flatness>0
+		final_dir2D.y = mix(final_dir2D.y, 0.0, clamp(flatness, 0.0, 1.0));
+
+		//------------------------------------------------
+		// 6) random velocity 
+		//    (We remove bounding-box velocity to avoid outer ring.)
+		//------------------------------------------------
+		float vel_rand = 0.0;
+		rand_from_seed_m1_p1(alt_seed, vel_rand);
+		float final_lin_vel = initial_linear_velocity + initial_linear_velocity_random * vel_rand;
+
+		// Pure direction-based velocity:
+		vec2 init_vel_2D = final_dir2D * final_lin_vel;
+
+		// No blending with box_vel. 
+		// This yields a more uniform \"ball\" of particles, no big outer ring.
+		VELOCITY = vec3(init_vel_2D, 0.0);
+
+		if (COLOR.a <= 0.0) {
+			ACTIVE = false;
+		} else {
+			//------------------------------------------------
+			// 7) random orbit_velocity, radial_accel, damping
+			//------------------------------------------------
+			float orbRand = 0.0; rand_from_seed_m1_p1(alt_seed, orbRand);
+			float chosen_orbit_velocity = orbit_velocity + orbit_velocity_random * orbRand;
+			CUSTOM.z = chosen_orbit_velocity;
+
+			float radRand = 0.0; rand_from_seed_m1_p1(alt_seed, radRand);
+			float final_radial_accel = radial_accel + radial_accel_random * radRand;
+
+			float tangRand = 0.0; rand_from_seed_m1_p1(alt_seed, tangRand);
+			float final_tangent_accel = tangent_accel + tangent_accel_random * tangRand;
+
+			float dampRand = 0.0; rand_from_seed_m1_p1(alt_seed, dampRand);
+			float final_damping = damping + damping_random * dampRand;
+
+			// Store them in TRANSFORM so we can retrieve them in process()
+			TRANSFORM[0].z = final_radial_accel;
+			TRANSFORM[1].z = final_tangent_accel;
+			TRANSFORM[2].z = final_damping;
+
+			//------------------------------------------------
+			// 8) random scale & anim offset
+			//------------------------------------------------
+			float sRand = 0.0; rand_from_seed_m1_p1(alt_seed, sRand);
+			float final_scale = scale + scale_random * sRand;
+			CUSTOM.x = final_scale;
+
+			float animRand = 0.0; rand_from_seed_m1_p1(alt_seed, animRand);
+			float final_anim_offset = anim_offset + anim_offset_random * animRand;
+			TRANSFORM[0].w = final_anim_offset;
+		}
+	}
+}
+
+// --- PROCESS (runs each frame) ---
+void process() {
+	//------------------------------------------------
+	// 1) Update fraction of lifetime
+	//------------------------------------------------
+	CUSTOM.y += DELTA / LIFETIME;
+	if (CUSTOM.y > CUSTOM.w) {
+		ACTIVE = false;
+	}
+
+	//------------------------------------------------
+	// 2) Fade alpha
+	//------------------------------------------------
+	if (ACTIVE) {
+		float alpha_fade = DELTA / (LIFETIME * CUSTOM.w);
+		COLOR.a = max(COLOR.a - alpha_fade, 0.0);
+		if (COLOR.a <= 0.0) {
+			ACTIVE = false;
+		}
+	}
+
+	//------------------------------------------------
+	// 3) Another alpha fade approach
+	//------------------------------------------------
+	if (ACTIVE) {
+		if (COLOR.a > 0.0) {
+			COLOR.a -= (1.0 / LIFETIME) * DELTA;
+		}
+		if (COLOR.a <= 0.0) {
+			ACTIVE = false;
+		}
+	}
+
+	if (ACTIVE) {
+		//------------------------------------------------
+		// 4) Forces: gravity, radial, tangent, damping
+		//------------------------------------------------
+		vec3 pos = TRANSFORM[3].xyz;
+		vec3 org = EMISSION_TRANSFORM[3].xyz;
+		vec3 diff = pos - org;
+		diff.z = 0.0;
+
+		// Gravity
+		vec3 force = gravity;
+
+		// Retrieve final radial_accel, tangent_accel, damping from TRANSFORM
+		float final_radial_accel = TRANSFORM[0].z;
+		float final_tangent_accel = TRANSFORM[1].z;
+		float final_damping = TRANSFORM[2].z;
+
+		// Radial Accel
+		float dist = length(diff);
+		if (final_radial_accel != 0.0 && dist > 0.00001) {
+			force += normalize(diff) * final_radial_accel;
+		}
+
+		// Tangent Accel
+		if (final_tangent_accel != 0.0 && dist > 0.00001) {
+			vec2 perp = vec2(-diff.y, diff.x);
+			perp = normalize(perp);
+			force.xy += perp * final_tangent_accel;
+		}
+
+		// Apply gravity
+		VELOCITY += force * DELTA;
+
+		// Damping
+		if (final_damping > 0.0) {
+			float v = length(VELOCITY);
+			v -= final_damping * DELTA;
+			if (v < 0.0) {
+				v = 0.0;
+			}
+			if (v == 0.0) {
+				VELOCITY = vec3(0.0);
+			} else {
+				VELOCITY = normalize(VELOCITY) * v;
+			}
+		}
+
+		//------------------------------------------------
+		// 5) Orbit swirl around sprite_center_offset
+		//------------------------------------------------
+		float chosen_orbit_velocity = CUSTOM.z;
+		if (chosen_orbit_velocity != 0.0) {
+			float orbit_amount = chosen_orbit_velocity * DELTA * 3.14159 * 2.0;
+			TRANSFORM[3].xy -= sprite_center_offset;
+			float c = cos(orbit_amount);
+			float s = sin(orbit_amount);
+			mat2 rot = mat2(vec2(c, -s), vec2(s, c));
+			TRANSFORM[3].xy = rot * TRANSFORM[3].xy;
+			TRANSFORM[3].xy += sprite_center_offset;
+		}
+
+		//------------------------------------------------
+		// 6) Move the particle
+		//------------------------------------------------
+		TRANSFORM[3].xyz += VELOCITY * DELTA;
+		TRANSFORM[3].z = 0.0;
+
+		//------------------------------------------------
+		// 7) Minimal \"anim_offset\" usage
+		//------------------------------------------------
+		if (anim_speed != 0.0) {
+			float anim_t = (CUSTOM.y * anim_speed) + TRANSFORM[0].w;
+			TRANSFORM[3].x += anim_t;
+		}
+
+		//------------------------------------------------
+		// 8) Scale final quad
+		//------------------------------------------------
+		float final_scale = CUSTOM.x * scale_factor;
+		TRANSFORM[0].xyz *= final_scale;
+		TRANSFORM[1].xyz *= final_scale;
+		TRANSFORM[2].xyz *= final_scale;
+	}
+}
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_t37yt"]
+shader = SubResource("Shader_1o43y")
+shader_parameter/emission_box_extents = Vector3(32, 32, 1)
+shader_parameter/lifetime_randomness = 0.0
+shader_parameter/initial_linear_velocity_min = 3.0
+shader_parameter/initial_linear_velocity_max = 3.0
+shader_parameter/color_value = Color(1, 1, 1, 1)
+shader_parameter/gravity = Vector3(0, -1e-06, 0)
+shader_parameter/spawn_area_scale = 1.0
+shader_parameter/scale_factor = 1.0
+shader_parameter/scale = 1.0
+shader_parameter/hue_variation = 0.0
+shader_parameter/anim_speed = 0.0
+shader_parameter/anim_offset = 0.0
+shader_parameter/direction = Vector3(1, 0, 0)
+shader_parameter/spread = 0.0
+shader_parameter/flatness = 0.0
+shader_parameter/initial_linear_velocity = 3.0
+shader_parameter/initial_angle = 0.0
+shader_parameter/angular_velocity = 0.0
+shader_parameter/orbit_velocity = 0.5
+shader_parameter/linear_accel = 0.0
+shader_parameter/radial_accel = 10.0
+shader_parameter/tangent_accel = 0.0
+shader_parameter/damping = 0.0
+shader_parameter/hue_variation_random = 0.0
+shader_parameter/initial_linear_velocity_random = 100.0
+shader_parameter/initial_angle_random = 0.0
+shader_parameter/angular_velocity_random = 0.0
+shader_parameter/orbit_velocity_random = 10.0
+shader_parameter/linear_accel_random = 0.0
+shader_parameter/radial_accel_random = 0.0
+shader_parameter/tangent_accel_random = 0.0
+shader_parameter/damping_random = 0.0
+shader_parameter/scale_random = 0.0
+shader_parameter/anim_speed_random = 0.0
+shader_parameter/anim_offset_random = 0.0
+shader_parameter/trail_divisor = 1
+shader_parameter/sprite_center_offset = Vector2(0, 16)
+shader_parameter/sprite = ExtResource("3_lnq6c")
+
+[node name="Beholder1" type="Area2D" groups=["Monsters"]]
+script = ExtResource("1_7bytk")
+single_frame_texture = ExtResource("3_lnq6c")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+position = Vector2(0, -20)
+texture = ExtResource("2_62uqw")
+hframes = 12
+vframes = 24
+frame = 276
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." groups=["Monsters"]]
+position = Vector2(-1, -12)
+shape = SubResource("CircleShape2D_03trb")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+libraries = {
+"": SubResource("AnimationLibrary_0hr3p")
+}
+speed_scale = 0.8
+
+[node name="DeathParticles" type="GPUParticles2D" parent="."]
+position = Vector2(0, -20)
+amount = 5000
+process_material = SubResource("ShaderMaterial_t37yt")
+texture = ExtResource("4_i2yyo")
+lifetime = 3.0
+explosiveness = 1.0
+visibility_rect = Rect2(0, 0, 0, 0)
+local_coords = true
+script = ExtResource("5_egdyd")
+
+[connection signal="area_entered" from="." to="." method="_on_Monster_area_entered"]
+[connection signal="body_entered" from="." to="." method="_on_Projectile_body_entered"]
